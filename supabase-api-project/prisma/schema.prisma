@@ -1,0 +1,88 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ======================
+// Barn (Galpão)
+// ======================
+model Barn {
+  id                     Int                    @id @default(autoincrement())
+  name                   String
+
+  // 1:1 relationships
+  silo                   Silo?                  @relation(fields: [siloId], references: [id])
+  siloId                 Int?                   @unique
+
+  environmentalMetrics   EnvironmentalMetrics?  @relation(fields: [environmentalMetricsId], references: [id])
+  environmentalMetricsId Int?                   @unique
+
+  @@map("barn")
+}
+
+// ======================
+// Silo
+// ======================
+model Silo {
+  id          Int             @id @default(autoincrement())
+  sensorCode  String
+  barn        Barn?           
+
+  // 1:N relationship with SiloLevelData
+  levelData   SiloLevelData[]
+
+  @@map("silo")
+}
+
+// ======================
+// Silo Level Data (Histórico do Silo)
+// ======================
+model SiloLevelData {
+  id         BigInt     @id @default(autoincrement())
+  levelValue Decimal    @db.Decimal(10, 2)
+  timestamp  DateTime   @default(now())
+
+  siloId     Int
+  silo       Silo       @relation(fields: [siloId], references: [id], onDelete: Cascade)
+
+  @@map("silo_level_data")
+}
+
+// ======================
+// Environmental Metrics (Unidade Ambiental)
+// ======================
+model EnvironmentalMetrics {
+  id          Int                  @id @default(autoincrement())
+  sensorCode  String
+  barn        Barn?                
+
+  // 1:N relationship with EnvironmentalData
+  data        EnvironmentalData[]
+
+  @@map("environmental_metrics")
+}
+
+// ======================
+// Environmental Data (Histórico Ambiental)
+// ======================
+model EnvironmentalData {
+  id          BigInt                @id @default(autoincrement())
+  temperature Decimal               @db.Decimal(5, 2)
+  humidity    Decimal               @db.Decimal(5, 2)
+  timestamp   DateTime              @default(now())
+
+  metricsId   Int
+  metrics     EnvironmentalMetrics  @relation(fields: [metricsId], references: [id], onDelete: Cascade)
+
+  @@map("environmental_data")
+}
