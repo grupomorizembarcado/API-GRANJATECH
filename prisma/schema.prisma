@@ -8,10 +8,18 @@ generator client {
   provider = "prisma-client-js"
 }
 
-datasource db {
+datasource grupoMorizDB {
   provider = "postgresql"
   url      = env("DATABASE_URL")
 }
+
+// model silo {
+//   id              Int      @id @default(autoincrement())
+//   silo_name       String   @default("----")
+//   sensor_value    Float    @default(0)
+//   dt_register     DateTime @default(now())
+// }
+
 
 // ======================
 // Barn (Galpão)
@@ -35,8 +43,9 @@ model Barn {
 // ======================
 model Silo {
   id          Int             @id @default(autoincrement())
+  name        String
   sensorCode  String
-  barn        Barn?           
+  barn        Barn?           @relation
 
   // 1:N relationship with SiloLevelData
   levelData   SiloLevelData[]
@@ -49,7 +58,7 @@ model Silo {
 // ======================
 model SiloLevelData {
   id         BigInt     @id @default(autoincrement())
-  levelValue Decimal    @db.Decimal(10, 2)
+  levelValue Decimal
   timestamp  DateTime   @default(now())
 
   siloId     Int
@@ -63,8 +72,9 @@ model SiloLevelData {
 // ======================
 model EnvironmentalMetrics {
   id          Int                  @id @default(autoincrement())
+  name        String
   sensorCode  String
-  barn        Barn?                
+  barn        Barn?                @relation
 
   // 1:N relationship with EnvironmentalData
   data        EnvironmentalData[]
@@ -77,8 +87,8 @@ model EnvironmentalMetrics {
 // ======================
 model EnvironmentalData {
   id          BigInt                @id @default(autoincrement())
-  temperature Decimal               @db.Decimal(5, 2)
-  humidity    Decimal               @db.Decimal(5, 2)
+  temperature Decimal
+  humidity    Decimal
   timestamp   DateTime              @default(now())
 
   metricsId   Int
