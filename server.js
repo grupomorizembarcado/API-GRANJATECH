@@ -1,5 +1,6 @@
 import express from "express";
 import { PrismaClient } from "@prisma/client";
+import superjson from "superjson";
 
 const app = express();
 const PORT = 3000;
@@ -7,15 +8,17 @@ const prisma = new PrismaClient();
 
 app.use(express.json());
 
-// Função para calcular o percentual do silo
+// ====================================================
+// 🧮 Função para calcular o percentual do silo
+// ====================================================
 function getPercentage(value) {
   const total = 200.0;
   return (value / total) * 100;
 }
 
-// =============================================
-// 📌 Criar Barn (Galpão) com Silo e Unidade Ambiental
-// =============================================
+// ====================================================
+// 📦 Criar Barn (Galpão) com Silo e Unidade Ambiental
+// ====================================================
 app.post("/barn", async (req, res) => {
   const { barn_name, silo_name, env_name, silo_sensor_code, env_sensor_code } = req.body;
 
@@ -42,28 +45,24 @@ app.post("/barn", async (req, res) => {
       },
     });
 
-    res.status(201).json({
+    const serialized = superjson.serialize({
       message: "Barn criado com sucesso.",
       barn: newBarn,
     });
+
+    res.status(201).json(serialized.json);
   } catch (error) {
     console.error("Erro ao criar Barn:", error);
     res.status(500).json({ erro: "Erro ao criar Barn no banco." });
   }
 });
 
-// =============================================
-// 📌 Editar Barn, Silo ou Unidade Ambiental
-// =============================================
+// ====================================================
+// ✏️ Editar Barn, Silo ou Unidade Ambiental
+// ====================================================
 app.put("/barn/:id", async (req, res) => {
   const { id } = req.params;
-  const {
-    barn_name,
-    silo_name,
-    env_name,
-    silo_sensor_code,
-    env_sensor_code,
-  } = req.body;
+  const { barn_name, silo_name, env_name, silo_sensor_code, env_sensor_code } = req.body;
 
   try {
     const barn = await prisma.barn.findUnique({
@@ -93,19 +92,21 @@ app.put("/barn/:id", async (req, res) => {
       include: { silo: true, environmentalMetrics: true },
     });
 
-    res.json({
+    const serialized = superjson.serialize({
       message: "Barn atualizado com sucesso.",
       barn: updatedBarn,
     });
+
+    res.json(serialized.json);
   } catch (error) {
     console.error("Erro ao atualizar Barn:", error);
     res.status(500).json({ erro: "Erro ao atualizar Barn." });
   }
 });
 
-// =============================================
-// 📌 Listar todos os Barns com histórico (últimos 20 registros)
-// =============================================
+// ====================================================
+// 📋 Listar todos os Barns com histórico (últimos 20 registros)
+// ====================================================
 app.get("/barns", async (req, res) => {
   try {
     const barns = await prisma.barn.findMany({
@@ -133,38 +134,39 @@ app.get("/barns", async (req, res) => {
       barn_id: b.id,
       barn_name: b.name,
       silo: {
-        id: b.silo.id,
-        name: b.silo.name,
-        sensor_code: b.silo.sensorCode,
-        last_20_readings: b.silo.levelData.map((r) => ({
-          level_value: r.levelValue,
-          percentage: getPercentage(r.levelValue),
+        id: b.silo?.id,
+        name: b.silo?.name,
+        sensor_code: b.silo?.sensorCode,
+        last_20_readings: b.silo?.levelData.map((r) => ({
+          level_value: parseFloat(r.levelValue),
+          percentage: getPercentage(parseFloat(r.levelValue)),
           timestamp: r.timestamp,
         })),
       },
       environment: {
-        id: b.environmentalMetrics.id,
-        name: b.environmentalMetrics.name,
-        sensor_code: b.environmentalMetrics.sensorCode,
-        last_20_readings: b.environmentalMetrics.data.map((r) => ({
-          temperature: r.temperature,
-          humidity: r.humidity,
+        id: b.environmentalMetrics?.id,
+        name: b.environmentalMetrics?.name,
+        sensor_code: b.environmentalMetrics?.sensorCode,
+        last_20_readings: b.environmentalMetrics?.data.map((r) => ({
+          temperature: parseFloat(r.temperature),
+          humidity: parseFloat(r.humidity),
           timestamp: r.timestamp,
         })),
       },
       consulted_at: new Date(),
     }));
 
-    res.json(result);
+    const serialized = superjson.serialize(result);
+    res.json(serialized.json);
   } catch (error) {
     console.error("Erro ao listar barns:", error);
     res.status(500).json({ erro: "Erro ao buscar barns." });
   }
 });
 
-// =============================================
-// 📌 Nova leitura do Silo
-// =============================================
+// ====================================================
+// 🌡️ Nova leitura do Silo
+// ====================================================
 app.post("/silo/reading", async (req, res) => {
   const { silo_id, level_value } = req.body;
 
@@ -180,22 +182,24 @@ app.post("/silo/reading", async (req, res) => {
       },
     });
 
-    res.status(201).json({
+    const serialized = superjson.serialize({
       message: "Leitura registrada.",
       silo_id: silo.id,
-      level_value: reading.levelValue,
-      percentage: getPercentage(reading.levelValue),
+      level_value: parseFloat(reading.levelValue),
+      percentage: getPercentage(parseFloat(reading.levelValue)),
       timestamp: reading.timestamp,
     });
+
+    res.status(201).json(serialized.json);
   } catch (error) {
     console.error("Erro ao registrar leitura do silo:", error);
     res.status(500).json({ erro: "Erro ao salvar leitura do silo." });
   }
 });
 
-// =============================================
-// 📌 Nova leitura ambiental
-// =============================================
+// ====================================================
+// 🌿 Nova leitura ambiental
+// ====================================================
 app.post("/environment/reading", async (req, res) => {
   const { metrics_id, temperature, humidity } = req.body;
 
@@ -216,19 +220,55 @@ app.post("/environment/reading", async (req, res) => {
       },
     });
 
-    res.status(201).json({
+    const serialized = superjson.serialize({
       message: "Leitura ambiental registrada.",
-      data: reading,
+      data: {
+        id: reading.id,
+        temperature: parseFloat(reading.temperature),
+        humidity: parseFloat(reading.humidity),
+        timestamp: reading.timestamp,
+      },
     });
+
+    res.status(201).json("Dados salvos com sucesso.");
   } catch (error) {
     console.error("Erro ao registrar leitura ambiental:", error);
     res.status(500).json({ erro: "Erro ao salvar leitura ambiental." });
   }
 });
 
-// =============================================
-// 📌 Rota padrão
-// =============================================
+// ====================================================
+// 📊 GET - Último registro de Temperatura e Umidade
+// ====================================================
+app.get("/environment/latest", async (req, res) => {
+  try {
+    const latestData = await prisma.environmentalData.findFirst({
+      orderBy: { timestamp: "desc" },
+    });
+
+    if (!latestData)
+      return res.status(404).json({ erro: "Nenhum dado ambiental encontrado." });
+
+    const serialized = superjson.serialize({
+      message: "Último dado ambiental encontrado.",
+      data: {
+        id: latestData.id,
+        temperature: parseFloat(latestData.temperature),
+        humidity: parseFloat(latestData.humidity),
+        timestamp: latestData.timestamp,
+      },
+    });
+
+    res.json(serialized.json);
+  } catch (error) {
+    console.error("Erro ao buscar último dado ambiental:", error);
+    res.status(500).json({ erro: "Erro ao buscar último dado ambiental." });
+  }
+});
+
+// ====================================================
+// 🌾 Rota padrão
+// ====================================================
 app.get("/", (req, res) => {
   res.status(200).send('<h2 style="text-align:center">🌾 API Feed Silo Monitor Online 🚀</h2>');
 });
