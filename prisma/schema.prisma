@@ -3,8 +3,9 @@ generator client {
 }
 
 datasource grupoMorizDB {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 model Barn {
@@ -52,7 +53,7 @@ model EnvironmentalData {
   id          BigInt               @id @default(autoincrement())
   temperature Decimal
   humidity    Decimal
-  timestamp   DateTime             @default(now())
+  timestamp   DateTime             @grupoMorizDB.Timestamptz(6)
   metricsId   Int
   metrics     EnvironmentalMetrics @relation(fields: [metricsId], references: [id], onDelete: Cascade)
 

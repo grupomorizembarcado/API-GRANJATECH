@@ -4,7 +4,13 @@ import superjson from "superjson";
 
 const app = express();
 const PORT = 3000;
-const prisma = new PrismaClient();
+const prisma = new PrismaClient({
+  log: ['error', 'warn'],
+});
+
+process.on('beforeExit', async () => {
+  await prisma.$disconnect();
+});
 
 app.use(express.json());
 
@@ -249,13 +255,18 @@ app.get("/environment/latest", async (req, res) => {
     if (!latestData)
       return res.status(404).json({ erro: "Nenhum dado ambiental encontrado." });
 
+    // converte para o horário de America/Fortaleza
+    const timestampLocal = new Date(latestData.timestamp).toLocaleString("pt-BR", {
+      timeZone: "America/Fortaleza",
+    });
+
     const serialized = superjson.serialize({
       message: "Último dado ambiental encontrado.",
       data: {
         id: latestData.id,
         temperature: parseFloat(latestData.temperature),
         humidity: parseFloat(latestData.humidity),
-        timestamp: latestData.timestamp,
+        timestamp: timestampLocal,
       },
     });
 
