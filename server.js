@@ -243,6 +243,21 @@ app.post("/environment/reading", async (req, res) => {
   }
 });
 
+// get silo
+app.get("/silo/reading", async (req, res) => {
+  try {
+    const readings = await prisma.reading.findMany({
+      orderBy: { createdAt: "desc" },
+      take: 10, // mostra as 10 últimas medições
+    });
+
+    res.status(200).json(readings);
+  } catch (error) {
+    console.error("Erro ao buscar leituras:", error.message);
+    res.status(500).json({ error: "Falha ao buscar leituras" });
+  }
+});
+
 // ====================================================
 // 📊 GET - Último registro de Temperatura e Umidade
 // ====================================================
