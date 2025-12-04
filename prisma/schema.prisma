@@ -8,54 +8,43 @@ datasource grupoMorizDB {
   directUrl = env("DIRECT_URL")
 }
 
-model Barn {
-  id                     Int                   @id @default(autoincrement())
-  name                   String
-  siloId                 Int?                  @unique
-  environmentalMetricsId Int?                  @unique
-  environmentalMetrics   EnvironmentalMetrics? @relation(fields: [environmentalMetricsId], references: [id])
-  silo                   Silo?                 @relation(fields: [siloId], references: [id])
-
-  @@map("barn")
-}
-
 model Silo {
   id         Int             @id @default(autoincrement())
   name       String
-  sensorCode String
-  barn       Barn?
+  sensorCode String          @unique
   levelData  SiloLevelData[]
 
   @@map("silo")
 }
 
 model SiloLevelData {
-  id         BigInt   @id @default(autoincrement())
-  levelValue Decimal
-  timestamp  DateTime @default(now())
-  siloId     Int
-  silo       Silo     @relation(fields: [siloId], references: [id], onDelete: Cascade)
+  id              BigInt   @id @default(autoincrement())
+  levelValue      Decimal
+  levelPercentage Decimal   
+  timestamp       DateTime @default(now())
+  siloId          Int
+  silo            Silo     @relation(fields: [siloId], references: [id], onDelete: Cascade)
 
   @@map("silo_level_data")
 }
 
+// Sensor de TEMPERATURA e UMIDADE
 model EnvironmentalMetrics {
   id         Int                 @id @default(autoincrement())
   name       String
-  sensorCode String
-  barn       Barn?
+  sensorCode String              @unique
   data       EnvironmentalData[]
 
   @@map("environmental_metrics")
 }
-
-model EnvironmentalData {
-  id          BigInt               @id @default(autoincrement())
-  temperature Decimal
-  humidity    Decimal
-  timestamp   DateTime             @grupoMorizDB.Timestamptz(6)
-  metricsId   Int
-  metrics     EnvironmentalMetrics @relation(fields: [metricsId], references: [id], onDelete: Cascade)
+ 
+ model EnvironmentalData {
+  id            BigInt    @id @default(autoincrement())
+  temperature   Decimal
+  humidity      Decimal
+  timestamp     DateTime  @grupoMorizDB.Timestamptz(6) 
+  metricsId     Int
+  metrics       EnvironmentalMetrics @relation(fields: [metricsId], references: [id], onDelete: Cascade)
 
   @@map("environmental_data")
 }
