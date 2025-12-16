@@ -300,6 +300,55 @@ app.get("/environment/latest", async (req, res) => {
 });
 
 // ====================================================
+// 🌡️ MÉDIA GLOBAL DE TEMPERATURA E UMIDADE (NOVA)
+// ====================================================
+app.get("/environment/average", async (req, res) => {
+  try {
+    // 1. Buscar todos os sensores ambientais
+    const sensors = await prisma.environmentalMetrics.findMany({
+      include: {
+        data: {
+          orderBy: { timestamp: "desc" },
+          take: 1, // pega SOMENTE a última leitura de cada sensor
+        },
+      },
+    });
+
+    // 2. Filtrar sensores que realmente enviaram dados
+    const validReadings = sensors
+      .filter(sensor => sensor.data.length > 0)
+      .map(sensor => ({
+        temperature: parseFloat(sensor.data[0].temperature.toString()),
+        humidity: parseFloat(sensor.data[0].humidity.toString()),
+        sensorCode: sensor.sensorCode,
+        timestamp: sensor.data[0].timestamp,
+      }));
+
+    if (validReadings.length === 0) {
+      return res.status(404).json({ erro: "Nenhum sensor com leitura disponível." });
+    }
+
+    // 3. Calcular médias
+    const avgTemperature =
+      validReadings.reduce((sum, r) => sum + r.temperature, 0) / validReadings.length;
+
+    const avgHumidity =
+      validReadings.reduce((sum, r) => sum + r.humidity, 0) / validReadings.length;
+
+    res.json({
+      total_sensors: validReadings.length,
+      average_temperature: Number(avgTemperature.toFixed(2)),
+      average_humidity: Number(avgHumidity.toFixed(2)),
+      sensors_used: validReadings.map(r => r.sensorCode),
+    });
+
+  } catch (error) {
+    console.error("Erro ao calcular média ambiental:", error);
+    res.status(500).json({ erro: "Erro ao calcular média ambiental." });
+  }
+});
+
+// ====================================================
 // 🌾 Rota padrão (Existente)
 // ====================================================
 app.get("/", (req, res) => {
