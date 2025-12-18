@@ -26,6 +26,33 @@ function getPercentage(value) {
   return (numericValue / total) * 100;
 }
 
+//
+// ====================================================
+//  Verificação periódica dos sensores ambientais
+// ====================================================
+setInterval(async () => {
+  const TWO_MINUTES = 2 * 60 * 1000;
+  const now = new Date();
+
+  const sensors = await prisma.environmentalMetrics.findMany({
+    include: {
+      data: {
+        orderBy: { timestamp: "desc" },
+        take: 1,
+      },
+    },
+  });
+
+  sensors.forEach(sensor => {
+    if (
+      sensor.data.length === 0 ||
+      now - new Date(sensor.data[0].timestamp) > TWO_MINUTES
+    ) {
+      console.warn(`🚨 ALERTA: Sensor ${sensor.sensorCode} sem dados há mais de 2 minutos`);
+    }
+  });
+}, 120 * 1000); // verifica a cada 2 minuto
+
 // ====================================================
 //  Rota 1: Criar um Novo Silo (POST)
 // ====================================================
@@ -345,6 +372,31 @@ app.get("/environment/average", async (req, res) => {
   } catch (error) {
     console.error("Erro ao calcular média ambiental:", error);
     res.status(500).json({ erro: "Erro ao calcular média ambiental." });
+  }
+});
+
+// ====================================================
+// 🗑️ Rota: Reset dos Sensores Ambientais
+// ====================================================
+app.delete("/environment/reset", async (req, res) => {
+  try {
+    await prisma.$transaction([
+      prisma.environmentalData.deleteMany(),
+      prisma.environmentalMetrics.deleteMany(),
+    ]);
+
+    res.status(200).json({
+      message: "Todos os sensores ambientais e suas leituras foram removidos com sucesso.",
+      deleted: {
+        environmentalData: "todos",
+        environmentalMetrics: "todos",
+      },
+    });
+  } catch (error) {
+    console.error("Erro ao resetar sensores ambientais:", error);
+    res.status(500).json({
+      erro: "Erro ao apagar dados dos sensores ambientais.",
+    });
   }
 });
 
