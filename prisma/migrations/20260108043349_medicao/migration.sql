@@ -1,0 +1,3 @@
+-- AlterTable
+ALTER TABLE "public"."silo" ADD COLUMN     "maxLevel" DECIMAL(65,30) NOT NULL DEFAULT 200,
+ADD COLUMN     "minLevel" DECIMAL(65,30) NOT NULL DEFAULT 0;

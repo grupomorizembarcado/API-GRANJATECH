@@ -9,10 +9,12 @@ datasource grupoMorizDB {
 }
 
 model Silo {
-  id         Int             @id @default(autoincrement())
-  name       String
-  sensorCode String          @unique
-  levelData  SiloLevelData[]
+  id          Int             @id @default(autoincrement())
+  name        String
+  sensorCode  String          @unique
+  minLevel    Decimal         @default(0)      
+  maxLevel    Decimal         @default(200)    
+  levelData   SiloLevelData[]
 
   @@map("silo")
 }

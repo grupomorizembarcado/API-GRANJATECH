@@ -1,5 +1,5 @@
-export function getPercentage(value) {
-  const numericValue = typeof value === "number" ? value : value.toNumber();
-  const total = 200.0;
-  return (numericValue / total) * 100;
+export function getPercentage(value, minLevel, maxLevel) {
+  const numericValue = typeof value === "number" ? value : Number(value);
+  if (maxLevel <= minLevel) return 0;
+  return ((numericValue - minLevel) / (maxLevel - minLevel)) * 100;
 }
