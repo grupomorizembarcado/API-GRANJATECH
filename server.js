@@ -5,6 +5,9 @@ import { PrismaClient } from "@prisma/client";
 import superjson from "superjson";
 import { Decimal } from "@prisma/client/runtime/library";
 
+import bcrypt from "bcrypt";
+import jwt from "jsonwebtoken";
+
 const app = express();
 const PORT = 3000;
 const prisma = new PrismaClient({
@@ -16,6 +19,74 @@ process.on('beforeExit', async () => {
 });
 
 app.use(express.json());
+
+// ====================================================
+// 🔐 Login
+// ====================================================
+app.post("/login", async (req, res) => {
+  const { email, password } = req.body;
+
+  if (!email || !password) {
+    return res.status(400).json({ erro: "Email e senha são obrigatórios." });
+  }
+
+  try {
+    const user = await prisma.user.findUnique({
+      where: { email },
+    });
+
+    if (!user) {
+      return res.status(401).json({ erro: "Credenciais inválidas." });
+    }
+
+    const passwordMatch = await bcrypt.compare(password, user.password);
+
+    if (!passwordMatch) {
+      return res.status(401).json({ erro: "Credenciais inválidas." });
+    }
+
+    const token = jwt.sign(
+      {
+        userId: user.id,
+        email: user.email,
+      },
+      process.env.JWT_SECRET,
+      {
+        expiresIn: process.env.JWT_EXPIRES_IN || "24h",
+      }
+    );
+
+    res.status(200).json({
+      message: "Login realizado com sucesso.",
+      token,
+    });
+  } catch (error) {
+    console.error("Erro no login:", error);
+    res.status(500).json({ erro: "Erro interno no login." });
+  }
+});
+
+// ====================================================
+// 🔒 Middleware de Autenticação JWT
+// ====================================================
+function authenticateToken(req, res, next) {
+  const authHeader = req.headers["authorization"];
+  const token = authHeader && authHeader.split(" ")[1];
+
+  if (!token) {
+    return res.status(401).json({ erro: "Token não fornecido." });
+  }
+
+  jwt.verify(token, process.env.JWT_SECRET, (err, user) => {
+    if (err) {
+      return res.status(403).json({ erro: "Token inválido ou expirado." });
+    }
+
+    req.user = user;
+    next();
+  });
+}
+
 //
 // ====================================================
 //  Função para calcular o percentual do silo

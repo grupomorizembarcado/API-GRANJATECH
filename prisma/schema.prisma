@@ -9,9 +9,12 @@ datasource grupoMorizDB {
 }
 
 model Silo {
-  id         Int             @id @default(autoincrement())
+  id         Int              @id @default(autoincrement())
   name       String
-  sensorCode String          @unique
+  sensorCode String           @unique
+  maxLevel   Decimal
+  minLevel   Decimal
+
   levelData  SiloLevelData[]
 
   @@map("silo")
@@ -47,4 +50,13 @@ model EnvironmentalMetrics {
   metrics       EnvironmentalMetrics @relation(fields: [metricsId], references: [id], onDelete: Cascade)
 
   @@map("environmental_data")
+}
+
+model User {
+  id        Int      @id @default(autoincrement())
+  email     String   @unique
+  password  String
+  createdAt DateTime @default(now())
+
+  @@map("users")
 }
