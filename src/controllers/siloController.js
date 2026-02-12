@@ -30,20 +30,30 @@ export async function createSilo(req, res) {
   }
 }
 
-
 export async function listSilos(req, res) {
   try {
     const silos = await prisma.silo.findMany({
-      include: { levelData: { orderBy: { timestamp: "desc" }, take: 20 } },
+      include: {
+        levelData: {
+          orderBy: { timestamp: "desc" },
+          take: 20,
+        },
+      },
     });
 
     const result = silos.map((silo) => ({
       silo_id: silo.id,
       silo_name: silo.name,
       sensor_code: silo.sensorCode,
+      min_level: parseFloat(silo.minLevel),
+      max_level: parseFloat(silo.maxLevel),
       last_20_readings: silo.levelData.map((r) => ({
         level_value: parseFloat(r.levelValue.toString()),
-        percentage: getPercentage(r.levelValue),
+        percentage: getPercentage(
+          parseFloat(r.levelValue.toString()),
+          parseFloat(silo.minLevel),
+          parseFloat(silo.maxLevel)
+        ),
         timestamp: r.timestamp,
       })),
     }));
@@ -54,7 +64,7 @@ export async function listSilos(req, res) {
     console.error("Erro ao listar silos:", error);
     res.status(500).json({ erro: "Erro ao buscar silos." });
   }
-}  
+}
 
 //leituras do sensores
 export async function createSiloReading(req, res) {

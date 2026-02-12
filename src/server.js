@@ -6,7 +6,7 @@ import environmentRoutes from "./routes/environment.routes.js";
 import authRoutes from "./routes/auth.routes.js";
 
 const app = express();
-//testando se render vai funcionar 
+
 app.use(cors({
   origin: [
     "http://localhost:3000",          
