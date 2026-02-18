@@ -2,6 +2,7 @@ import { PrismaClient } from "@prisma/client";
 import superjson from "superjson";
 import { getPercentage } from "../utils/calculations.js";
 
+
 const prisma = new PrismaClient();
 
 export async function createSilo(req, res) {
@@ -33,26 +34,19 @@ export async function createSilo(req, res) {
 export async function listSilos(req, res) {
   try {
     const silos = await prisma.silo.findMany({
-      include: {
-        levelData: {
-          orderBy: { timestamp: "desc" },
-          take: 20,
-        },
-      },
+      include: { levelData: { orderBy: { timestamp: "desc" }, take: 20 } },
     });
 
     const result = silos.map((silo) => ({
       silo_id: silo.id,
       silo_name: silo.name,
       sensor_code: silo.sensorCode,
-      min_level: parseFloat(silo.minLevel),
-      max_level: parseFloat(silo.maxLevel),
+      min_level: silo.minLevel,
+      max_level: silo.maxLevel,
       last_20_readings: silo.levelData.map((r) => ({
         level_value: parseFloat(r.levelValue.toString()),
-        percentage: getPercentage(
-          parseFloat(r.levelValue.toString()),
-          parseFloat(silo.minLevel),
-          parseFloat(silo.maxLevel)
+        percentage: parseFloat(
+          getPercentage(r.levelValue, silo.minLevel, silo.maxLevel).toFixed(2)
         ),
         timestamp: r.timestamp,
       })),
@@ -68,17 +62,17 @@ export async function listSilos(req, res) {
 
 //leituras do sensores
 export async function createSiloReading(req, res) {
-  const { silo_id, level_value } = req.body;
+  const { sensor_code, level_value } = req.body;
 
   try {
     const silo = await prisma.silo.findUnique({
-      where: { id: parseInt(silo_id) },
-      select: { id: true, name: true, minLevel: true, maxLevel: true },
+      where: { sensorCode: sensor_code },
+      select: { id: true, name: true, minLevel: true, maxLevel: true, sensorCode: true },
     });
 
-    if (!silo)
-      return res.status(404).json({ erro: "Silo não encontrado." });
-
+    if (!silo) {
+      return res.status(404).json({ erro: "Silo não encontrado para o código informado." });
+    }
     const percentage = getPercentage(
       parseFloat(level_value),
       parseFloat(silo.minLevel),
@@ -96,10 +90,10 @@ export async function createSiloReading(req, res) {
 
     res.status(201).json({
       message: "Leitura registrada.",
-      silo_id: silo.id,
+      sensor_code: silo.sensorCode,
       silo_name: silo.name,
       level_value: parseFloat(reading.levelValue),
-      percentage: parseFloat(reading.levelPercentage),
+      percentage: parseFloat(reading.levelPercentage.toFixed(2)),
       timestamp: reading.timestamp,
     });
   } catch (error) {
@@ -108,27 +102,46 @@ export async function createSiloReading(req, res) {
   }
 }
 
+//passar codigo do sensor  aqui e na leitura 
 export async function updateSilo(req, res) {
-  const { id } = req.params;
-  const { name, minLevel, maxLevel } = req.body;
+  const { sensor_code } = req.params;
+  const { name, minLevel, maxLevel, newSensorCode } = req.body;
 
   try {
+
+    const existingSilo = await prisma.silo.findUnique({
+      where: { sensorCode: sensor_code },
+    });
+
+    if (!existingSilo) {
+      return res.status(404).json({ erro: "Silo não encontrado para o código informado." });
+    }
+
     const updated = await prisma.silo.update({
-      where: { id: parseInt(id) },
+      where: { sensorCode: sensor_code },
       data: {
         ...(name && { name }),
         ...(minLevel && { minLevel: parseFloat(minLevel) }),
         ...(maxLevel && { maxLevel: parseFloat(maxLevel) }),
+        ...(newSensorCode && { sensorCode: newSensorCode }),
       },
     });
 
-    res.json({ message: "Silo atualizado com sucesso.", silo: updated });
+    res.json({
+      message: "Silo atualizado com sucesso.",
+      silo: {
+        id: updated.id,
+        name: updated.name,
+        sensor_code: updated.sensorCode,
+        min_level: updated.minLevel,
+        max_level: updated.maxLevel,
+      },
+    });
   } catch (error) {
     console.error("Erro ao atualizar silo:", error);
     res.status(500).json({ erro: "Erro ao atualizar silo." });
   }
 }
-
 
 export async function listSiloReadings(req, res) {
   try {
@@ -150,5 +163,35 @@ export async function listSiloReadings(req, res) {
   } catch (error) {
     console.error("Erro ao buscar leituras de Silo:", error);
     res.status(500).json({ error: "Falha ao buscar leituras de Silo" });
+  }
+}
+
+export async function deleteSilo(req, res) {
+  const { id } = req.params;
+
+  try {
+ 
+    const silo = await prisma.silo.findUnique({ where: { id: parseInt(id) } });
+
+    if (!silo) {
+      return res.status(404).json({ erro: "Silo não encontrado." });
+    }
+
+    
+    await prisma.siloLevelData.deleteMany({
+      where: { siloId: silo.id },
+    });
+
+    
+    await prisma.silo.delete({
+      where: { id: silo.id },
+    });
+
+    res.status(200).json({
+      message: `Silo "${silo.name}" e suas leituras foram excluídos com sucesso.`,
+    });
+  } catch (error) {
+    console.error("Erro ao excluir silo:", error);
+    res.status(500).json({ erro: "Erro ao excluir silo." });
   }
 }

@@ -4,8 +4,9 @@ import cors from "cors";
 import siloRoutes from "./routes/silo.routes.js";
 import environmentRoutes from "./routes/environment.routes.js";
 import authRoutes from "./routes/auth.routes.js";
-
 const app = express();
+
+
 
 app.use(cors({
   origin: [
