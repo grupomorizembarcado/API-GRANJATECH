@@ -1,7 +1,6 @@
-import { PrismaClient } from "@prisma/client";
+import prisma from "../config/prisma.js";
 import superjson from "superjson";
 
-const prisma = new PrismaClient();
 
 export async function createEnvironmentalUnit(req, res) {
   const { name, sensorCode } = req.body;

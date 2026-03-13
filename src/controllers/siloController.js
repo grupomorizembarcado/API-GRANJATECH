@@ -1,9 +1,7 @@
-import { PrismaClient } from "@prisma/client";
+import prisma from "../config/prisma.js";
 import superjson from "superjson";
 import { getPercentage } from "../utils/calculations.js";
 
-
-const prisma = new PrismaClient();
 
 export async function createSilo(req, res) {
   const { name, sensorCode, minLevel, maxLevel } = req.body;
@@ -34,7 +32,12 @@ export async function createSilo(req, res) {
 export async function listSilos(req, res) {
   try {
     const silos = await prisma.silo.findMany({
-      include: { levelData: { orderBy: { timestamp: "desc" }, take: 20 } },
+      include: { 
+        levelData: { 
+          orderBy: { timestamp: "desc" }, 
+          take: 20 
+        } 
+      },
     });
 
     const result = silos.map((silo) => ({
@@ -44,11 +47,10 @@ export async function listSilos(req, res) {
       min_level: silo.minLevel,
       max_level: silo.maxLevel,
       last_20_readings: silo.levelData.map((r) => ({
-        level_value: parseFloat(r.levelValue.toString()),
-        percentage: parseFloat(
-          getPercentage(r.levelValue, silo.minLevel, silo.maxLevel).toFixed(2)
-        ),
-        timestamp: r.timestamp,
+      id: r.id.toString(), 
+    level_value: parseFloat(r.levelValue.toString()), 
+  percentage: parseFloat(r.levelPercentage.toString()), 
+  timestamp: r.timestamp,
       })),
     }));
 
@@ -164,34 +166,49 @@ export async function listSiloReadings(req, res) {
     console.error("Erro ao buscar leituras de Silo:", error);
     res.status(500).json({ error: "Falha ao buscar leituras de Silo" });
   }
-}
+} 
 
 export async function deleteSilo(req, res) {
-  const { id } = req.params;
+  let { sensor_code } = req.params;
+
+  
+  console.log("Código recebido na URL:", sensor_code);
 
   try {
- 
-    const silo = await prisma.silo.findUnique({ where: { id: parseInt(id) } });
+   
+    const cleanCode = sensor_code.trim();
 
+    const silo = await prisma.silo.findUnique({
+      where: { sensorCode: cleanCode }
+    });
+
+    
     if (!silo) {
-      return res.status(404).json({ erro: "Silo não encontrado." });
+      console.log("Não encontrado com match exato. Tentando busca flexível...");
+      
+      const fuzzySilo = await prisma.silo.findFirst({
+        where: {
+          sensorCode: {
+            equals: cleanCode,
+            mode: 'insensitive' 
+          }
+        }
+      });
+
+      if (!fuzzySilo) {
+        return res.status(404).json({ erro: `Silo ${cleanCode} não existe no banco.` });
+      }
+      
+    
+      await prisma.silo.delete({ where: { id: fuzzySilo.id } });
+    } else {
+      await prisma.silo.delete({ where: { id: silo.id } });
     }
 
-    
-    await prisma.siloLevelData.deleteMany({
-      where: { siloId: silo.id },
-    });
+    return res.status(200).json({ message: "Excluído com sucesso" });
 
-    
-    await prisma.silo.delete({
-      where: { id: silo.id },
-    });
-
-    res.status(200).json({
-      message: `Silo "${silo.name}" e suas leituras foram excluídos com sucesso.`,
-    });
   } catch (error) {
-    console.error("Erro ao excluir silo:", error);
-    res.status(500).json({ erro: "Erro ao excluir silo." });
+    console.error(error);
+    res.status(500).json({ erro: "Erro ao excluir" });
   }
 }
