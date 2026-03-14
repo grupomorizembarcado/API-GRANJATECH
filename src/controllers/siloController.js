@@ -75,12 +75,16 @@ export async function createSiloReading(req, res) {
     if (!silo) {
       return res.status(404).json({ erro: "Silo não encontrado para o código informado." });
     }
+
     const percentage = getPercentage(
       parseFloat(level_value),
-      parseFloat(silo.minLevel),
+      0,
       parseFloat(silo.maxLevel)
     );
 
+    const isCritical = parseFloat(level_value) <= parseFloat(silo.minLevel);
+
+    
     const reading = await prisma.siloLevelData.create({
       data: {
         levelValue: parseFloat(level_value),
@@ -96,8 +100,10 @@ export async function createSiloReading(req, res) {
       silo_name: silo.name,
       level_value: parseFloat(reading.levelValue),
       percentage: parseFloat(reading.levelPercentage.toFixed(2)),
+      status: isCritical ? "CRÍTICO" : "OK", 
       timestamp: reading.timestamp,
     });
+
   } catch (error) {
     console.error("Erro ao registrar leitura do silo:", error);
     res.status(500).json({ erro: "Erro ao salvar leitura do silo." });

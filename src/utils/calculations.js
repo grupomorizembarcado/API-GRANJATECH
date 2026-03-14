@@ -1,14 +1,13 @@
-export function getPercentage(value, minLevel, maxLevel) {
-  const distance = Number(value);
-  const distFull = Number(minLevel); 
-  const distEmpty = Number(maxLevel); 
 
-  if (distEmpty <= distFull) return 0;
 
-  let percentage = ((distEmpty - distance) / (distEmpty - distFull)) * 100;
+export function getPercentage(levelValue, minLevel, maxLevel) {
+  if (!maxLevel || maxLevel <= 0) return 0;
 
-  if (percentage < 0) percentage = 0;
+  let percentage = (levelValue / maxLevel) * 100;
+
+ 
   if (percentage > 100) percentage = 100;
+  if (percentage < 0) percentage = 0;
 
   return percentage;
 }
