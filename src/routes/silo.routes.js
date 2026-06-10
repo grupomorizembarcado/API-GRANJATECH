@@ -1,20 +1,16 @@
 import express from "express";
-import {
-  createSilo,
-  listSilos,
-  createSiloReading,
-  listSiloReadings,
-  updateSilo,
-  deleteSilo,
-} from "../controllers/siloController.js";
+import * as siloController from "../controllers/siloController.js";
 
 const router = express.Router();
 
-router.post("/silo", createSilo);
-router.get("/silos", listSilos);
-router.post("/silo/reading", createSiloReading);
-router.get("/silo/reading", listSiloReadings);
-router.put("/silo/:sensor_code", updateSilo);
-router.delete("/silo/:sensor_code", deleteSilo);
+// CRUD de Silos
+router.post("/silo", siloController.createSilo);
+router.get("/silos", siloController.listSilos);
+router.put("/silo/:sensor_code", siloController.updateSilo);
+router.delete("/silo/:sensor_code", siloController.deleteSilo);
+
+// Leituras
+router.post("/silo/reading", siloController.createSiloReading);
+router.get("/silo/reading", siloController.listSiloReadings);
 
 export default router;
