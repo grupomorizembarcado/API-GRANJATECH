@@ -1,6 +1,6 @@
 import bcrypt from "bcrypt";
 
-const senha = "digite-sua-senha";
+const senha = "senha123";
 
 const hash = await bcrypt.hash(senha, 10);
 

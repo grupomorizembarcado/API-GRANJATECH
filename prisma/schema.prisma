@@ -9,12 +9,12 @@ datasource grupoMorizDB {
 }
 
 model Silo {
-  id          Int             @id @default(autoincrement())
-  name        String
-  sensorCode  String          @unique
-  minLevel    Decimal         @default(0)      
-  maxLevel    Decimal         @default(200)    
-  levelData   SiloLevelData[]
+  id         Int             @id @default(autoincrement())
+  name       String
+  sensorCode String          @unique
+  minLevel   Decimal         @default(0)
+  maxLevel   Decimal         @default(200)
+  levelData  SiloLevelData[]
 
   @@map("silo")
 }
@@ -22,7 +22,7 @@ model Silo {
 model SiloLevelData {
   id              BigInt   @id @default(autoincrement())
   levelValue      Decimal
-  levelPercentage Decimal   
+  levelPercentage Decimal
   timestamp       DateTime @default(now())
   siloId          Int
   silo            Silo     @relation(fields: [siloId], references: [id], onDelete: Cascade)
@@ -30,7 +30,6 @@ model SiloLevelData {
   @@map("silo_level_data")
 }
 
-// Sensor de TEMPERATURA e UMIDADE
 model EnvironmentalMetrics {
   id         Int                 @id @default(autoincrement())
   name       String
@@ -39,22 +38,28 @@ model EnvironmentalMetrics {
 
   @@map("environmental_metrics")
 }
- 
- model EnvironmentalData {
-  id            BigInt    @id @default(autoincrement())
-  temperature   Decimal
-  humidity      Decimal
-  timestamp     DateTime  @grupoMorizDB.Timestamptz(6) 
-  metricsId     Int
-  metrics       EnvironmentalMetrics @relation(fields: [metricsId], references: [id], onDelete: Cascade)
+
+model EnvironmentalData {
+  id          BigInt               @id @default(autoincrement())
+  temperature Decimal
+  humidity    Decimal
+  timestamp   DateTime             @grupoMorizDB.Timestamptz(6)
+  metricsId   Int
+  metrics     EnvironmentalMetrics @relation(fields: [metricsId], references: [id], onDelete: Cascade)
 
   @@map("environmental_data")
 }
 
+enum Role {
+  ADMIN
+  VIEWER
+}
+
 model User {
-  id        Int      @id @default(autoincrement())
+  id        String   @id @default(uuid())
   email     String   @unique
   password  String
+  role      Role     @default(VIEWER)
   createdAt DateTime @default(now())
 
   @@map("users")
