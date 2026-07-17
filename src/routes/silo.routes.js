@@ -15,7 +15,7 @@ router.post("/silo/reading", siloController.createSiloReading);
 router.get("/silo/reading", siloController.listSiloReadings);
 
 export default router;
-// alteração
+
 // Apenas ADMIN
 router.post(
   "/silo",
@@ -48,8 +48,6 @@ router.get(
 
 router.post(
   "/silo/reading",
-  authenticateToken,
-  authorizeRoles("ADMIN"),
   siloController.createSiloReading
 );
 

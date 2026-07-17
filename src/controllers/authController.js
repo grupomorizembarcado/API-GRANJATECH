@@ -54,7 +54,7 @@ export async function login(req, res) {
 }
 
 // ====================================================
-// 📝 Registro / Cadastro Controller (Recolocado aqui)
+//  Registro / Cadastro Controller (Recolocado aqui)
 // ====================================================
 export async function createUser(req, res) {
   try {

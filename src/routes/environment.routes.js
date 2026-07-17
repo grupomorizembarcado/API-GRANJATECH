@@ -37,8 +37,6 @@ router.post(
 
 router.post(
   "/environment/reading",
-  authenticateToken,
-  authorizeRoles("ADMIN"),
   createEnvironmentalReading
 );
 

@@ -5,10 +5,10 @@ import { authorizeRoles } from "../middleware/roleMiddleware.js";
 
 const router = express.Router();
 
-// 🔓 Rota pública de login
+//  Rota pública de login
 router.post("/login", login);
 
-// 🔐 Rota protegida: Apenas ADMIN pode criar novos usuários
+//  Rota protegida: Apenas ADMIN pode criar novos usuários
 router.post(
   "/users",
   authenticateToken,
